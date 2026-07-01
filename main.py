@@ -3,10 +3,11 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import db
 from sync import sync_inbox
+from fetch_mails import mark_emails_as_read
 
 app = FastAPI(title="Mail Categorization Agent")
 
-POLL_INTERVAL_SECONDS = 300  # sync every 5 minutes; change as needed
+POLL_INTERVAL_SECONDS = 300  # sync every 5 minutes
 
 db.init_db()
 
@@ -32,6 +33,16 @@ async def startup_event():
 def get_inbox():
     emails = db.get_all_emails()
     return {"count": len(emails), "emails": emails}
+
+
+@app.post("/mark_all_read")
+def mark_all_read():
+    emails = db.get_all_emails()
+    ids = [e["id"] for e in emails]
+    if ids:
+        mark_emails_as_read(ids)
+    result = sync_inbox()
+    return {"marked_read": len(ids), "sync_result": result}
 
 
 @app.get("/", response_class=HTMLResponse)
