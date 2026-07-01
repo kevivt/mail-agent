@@ -1,35 +1,40 @@
-from fastapi import FastAPI, Query
-from fetch_mails import fetch_recent_emails
-from agent import classify_email
+import asyncio
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+import db
+from sync import sync_inbox
 
 app = FastAPI(title="Mail Categorization Agent")
 
+POLL_INTERVAL_SECONDS = 300  # sync every 5 minutes; change as needed
 
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "Mail Categorization Agent is running"}
+db.init_db()
 
 
-@app.get("/emails")
-def get_classified_emails(max_results: int = Query(20, ge=1, le=100)):
-    """
-    Fetch recent emails from Gmail and classify each into
-    job_application, corporate, or private.
-    """
-    emails = fetch_recent_emails(max_results=max_results)
+async def background_sync_loop():
+    while True:
+        try:
+            result = sync_inbox()
+            print(f"[sync] new={result['new_classified']} "
+                  f"removed={result['removed_read']} "
+                  f"active={result['total_active']}")
+        except Exception as e:
+            print(f"[sync] error: {e}")
+        await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
-    classified = []
-    for e in emails:
-        category = classify_email(e["subject"], e["sender"], e["snippet"])
-        classified.append({
-            "id": e["id"],
-            "subject": e["subject"],
-            "sender": e["sender"],
-            "snippet": e["snippet"],
-            "category": category
-        })
 
-    return {
-        "count": len(classified),
-        "emails": classified
-    }
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(background_sync_loop())
+
+
+@app.get("/inbox")
+def get_inbox():
+    emails = db.get_all_emails()
+    return {"count": len(emails), "emails": emails}
+
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard():
+    with open("static/index.html", encoding="utf-8") as f:
+        return f.read()
