@@ -6,7 +6,7 @@ CATEGORIES = ["job_application", "corporate", "private"]
 def classify_email(subject, sender, snippet):
     prompt = f"""Classify this email into exactly ONE category: job_application, corporate, or private.
 
-job_application = ANY email about a real job/internship opportunity for YOU: job alerts, postings, recruiter outreach, shortlisting, interview invites, application status, hiring events/hackathons you could apply to.
+job_application = ANY email about a real job/internship opportunity for YOU: job alerts, postings, recruiter outreach, shortlisting, interview invites, application status, hiring events/hackathons you could apply to. Emails from PESU placements <pesuplacements@pes.edu> about internships, full-time roles, or career opportunities are ALWAYS job_application, even if forwarded ("Fwd:") or addressed to a whole batch.
 
 corporate = official company/business communications NOT about a job opportunity for you: personalized automated updates from apps/platforms (e.g. "Vivek, your update is ready" from daily.dev), notifications about OTHER people's jobs/careers, product/feature announcements even from platforms like LinkedIn, online courses, subscriptions, bills, service notifications, marketing, and non-job requests.
 
